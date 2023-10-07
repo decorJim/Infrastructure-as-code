@@ -45,7 +45,7 @@ ec2_client = session.create_client("ec2", region_name="ca-central-1")
 
 ############################################### SECURITY GROUP CREATION ############################################
 print(
-    "############################## SECURITY GROUP CREATION ####################################"
+    "############################## SECURITY GROUP CREATION FOR RESOURCES ####################################"
 )
 # all resources linked to an account is in a Virtual Private Cloud (VPC)
 # it is used to isolate resources in there corresponding region
@@ -57,12 +57,37 @@ response_vpcs = ec2_client.describe_vpcs()
 vpc_id = response_vpcs.get("Vpcs", [{}])[0].get("VpcId", "")
 print("first virtual private cloud:", vpc_id)
 
+# creates a security group for the given vpc that acts like a firewall
 response_security_group = ec2_client.create_security_group(
     GroupName="ec2-security-group",
     Description="this acts like a firewall to control inbound and outbound from and to resources ",
+    VpcId=vpc_id,
 )
 
-"""
+security_group_id = response_security_group["GroupId"]
+print("security group created with id:", security_group_id)
+
+
+# define rules for traffic of the security group
+ec2_client.authorize_security_group_ingress(
+    GroupId=security_group_id,
+    IpPermissions=[
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 80,  # security group allows traffic from port 80 (HTTP)
+            "ToPort": 80,  # port 80 traffic will reach resources
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],  # allows traffic from any source
+        },
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 22,  # security group allows traffic from port 22 (SSH)
+            "ToPort": 22,  # port 80 traffic will reach resources
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],  # allows traffic from any source
+        },
+    ],
+)
+
+
 ############################################### EC2 CREATION #######################################################
 print(
     "############################## EC2 CREATION ####################################"
@@ -86,4 +111,3 @@ print(
 )
 
 print(response["Instances"][0]["InstanceId"])
-"""
