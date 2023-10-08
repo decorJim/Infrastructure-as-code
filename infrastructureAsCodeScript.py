@@ -50,7 +50,7 @@ print(
 # all resources linked to an account is in a Virtual Private Cloud (VPC)
 # it is used to isolate resources in there corresponding region
 
-# list all of the VPC of my account
+# list all of the VPC of my account, normally some are already created during account creation
 response_vpcs = ec2_client.describe_vpcs()
 
 # gets the first virtual private network's id found
@@ -67,6 +67,7 @@ response_security_group = ec2_client.create_security_group(
 security_group_id = response_security_group["GroupId"]
 print("security group created with id:", security_group_id)
 
+##################################################### Attach rules to security group #################################################
 
 # define rules for traffic of the security group
 ec2_client.authorize_security_group_ingress(
@@ -86,9 +87,70 @@ ec2_client.authorize_security_group_ingress(
         },
     ],
 )
+print("rules assigned to security group ...")
+
+
+print(
+    "############################## LOAD BALANCER CREATION ####################################"
+)
+
+load_balancer_client = session.create_client("elbv2", region_name="ca-central-1")
+
+# some of the subnets are already created by default during account creation
+subnets_response = ec2_client.describe_subnets()
+
+print("traffic will be distributed between those subnets ...")
+subnets_id = []
+for subnet in subnets_response["Subnets"]:
+    subnets_id.append(subnet["SubnetId"])
+    print("subnet id:", subnet["SubnetId"])
+    print("VPC id:", subnet["VpcId"])
+    print("availability zone:", subnet["AvailabilityZone"])
+    print("CidrBlock:", subnet["CidrBlock"])
+    print()
+
+load_balancer_response = load_balancer_client.create_load_balancer(
+    Name="the-cool-balancer",
+    Subnets=subnets_id,
+    SecurityGroups=[security_group_id],
+    Scheme="internet-facing",
+)
+
+load_balancer_arn = load_balancer_response["LoadBalancers"][0]["LoadBalancerArn"]
+print("load balancer arn:", load_balancer_arn)
+
+listener_response = load_balancer_client.create_listener(
+    LoadBalancerArn=load_balancer_arn,
+    Protocol="HTTP",
+    Port=80,
+    DefaultActions=[
+        {
+            "Type": "fixed-response",
+            "FixedResponseConfig": {
+                "ContentType": "text/plain",
+                "StatusCode": "200",
+                "MessageBody": "Hello, ALB!",
+            },
+        }
+    ],
+)
+
+load_balancer_describe_response = load_balancer_client.describe_load_balancers(
+    Names=["the-cool-balancer"]
+)
+
+if (
+    "LoadBalancers" in load_balancer_describe_response
+    and len(load_balancer_describe_response["LoadBalancers"]) > 0
+):
+    alb_dns_name = load_balancer_describe_response["LoadBalancers"][0]["DNSName"]
+    print("ALB DNS Name:", alb_dns_name)
+else:
+    print("ALB not found or no DNS name available.")
 
 
 ############################################### EC2 CREATION #######################################################
+"""
 print(
     "############################## EC2 CREATION ####################################"
 )
@@ -111,3 +173,4 @@ print(
 )
 
 print(response["Instances"][0]["InstanceId"])
+"""
