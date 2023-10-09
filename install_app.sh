@@ -4,29 +4,31 @@
 sudo yum update -y
 sudo yum install -y python3 python3-pip
 
-# Create app folder
-mkdir app
+sudo mkdir app
 cd app
 
-# Create Python virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install Flask
-pip install Flask
+sudo pip install Flask
 
-# Create a Flask app
-echo '
+sudo echo '
 from flask import Flask
 import requests
+import subprocess
 
 app = Flask(__name__)
 
 @app.route("/")
 def get_instance_id():
     # Use the EC2 metadata service to fetch the instance ID
-    instance_id = requests.get("http://169.254.169.254/latest/meta-data/instance-id").text
-    return "Instance ID: " + str(instance_id)
+    try: 
+        instance_id=subprocess.check_output(["ec2-metadata","-i"]).decode("utf-8").strip().split(":")[1].strip()
+        print("Instance ID:", instance_id)
+        return "Instance ID:" + str(instance_id)
+    except subprocess.CalledProcessError as e:
+        print("Error:", e)
+    
 
 @app.route("/health")
 def health_check():
@@ -38,7 +40,6 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80)
 ' > main.py
 
-# Run the Flask app in the background
-nohup python main.py > /dev/null 2>&1 &
+nohup sudo python3 main.py > /dev/null 2>&1 &
 
 echo "Flask app is running on port 80"
