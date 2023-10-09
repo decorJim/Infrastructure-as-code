@@ -6,6 +6,7 @@ import botocore.session
 import os
 import boto3
 from dotenv import load_dotenv
+import base64
 
 ############################################## CONNECTION FOR PROGRAMMATIC ACCESS #################################################
 session = botocore.session.Session()
@@ -148,9 +149,17 @@ if (
 else:
     print("ALB not found or no DNS name available.")
 
+############################################### SCRIPT to install app in instance ###############################################
+
+with open("install_app.sh", "r") as file:
+    app_script_content = file.read()
+
+app_script_base64 = base64.b64encode(app_script_content.encode()).decode("utf-8")
+
+print("script loaded ...")
+print(app_script_content)
 
 ############################################### EC2 CREATION #######################################################
-"""
 print(
     "############################## EC2 CREATION ####################################"
 )
@@ -160,17 +169,18 @@ instance_params = {
     "InstanceType": "t2.micro",
     "MinCount": 1,  # how many instance is created
     "MaxCount": 1,
+    "UserData": app_script_base64,
+    "SecurityGroupIds": [security_group_id],
 }
 
 response = ec2_client.run_instances(**instance_params)
 print(
     "creating ec2 "
-    + instance_params["MinCount"]
+    + str(instance_params["MinCount"])
     + " instances of type "
-    + instance_params["InstanceType"]
+    + str(instance_params["InstanceType"])
     + " with image id:"
-    + instance_params["ImageId"]
+    + str(instance_params["ImageId"])
 )
 
 print(response["Instances"][0]["InstanceId"])
-"""
