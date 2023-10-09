@@ -6,7 +6,6 @@ import botocore.session
 import os
 import boto3
 from dotenv import load_dotenv
-import base64
 
 ############################################## CONNECTION FOR PROGRAMMATIC ACCESS #################################################
 session = botocore.session.Session()
@@ -151,10 +150,7 @@ else:
 
 ############################################### SCRIPT to install app in instance ###############################################
 
-with open("install_app.sh", "r") as file:
-    app_script_content = file.read()
-
-app_script_base64 = base64.b64encode(app_script_content.encode()).decode("utf-8")
+app_script_content = open("install_app.sh", "r").read()
 
 print("script loaded ...")
 print(app_script_content)
@@ -169,7 +165,7 @@ instance_params = {
     "InstanceType": "t2.micro",
     "MinCount": 1,  # how many instance is created
     "MaxCount": 1,
-    "UserData": app_script_base64,
+    "UserData": app_script_content,
     "SecurityGroupIds": [security_group_id],
 }
 
