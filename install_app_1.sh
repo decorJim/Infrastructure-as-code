@@ -19,7 +19,7 @@ import subprocess
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/cluster1")
 def get_instance_id():
     # Use the EC2 metadata service to fetch the instance ID
     try: 

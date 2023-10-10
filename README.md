@@ -24,3 +24,10 @@
 - manually run the app using "python3 main.py"
 - use browser to ping API and check error logs in the connect terminal
 
+# aws listeners
+- we attach listeners to the load balancer to tell how to route the traffic
+
+# target groups
+- we define target group and put resource associated with them
+- the listener can then forward traffic to that group
+
