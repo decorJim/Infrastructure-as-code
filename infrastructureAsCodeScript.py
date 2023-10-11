@@ -2,6 +2,7 @@
 # create a user and add user to the group
 # in the user tab, create an access key
 
+import time
 import botocore.session
 import os
 import boto3
@@ -61,17 +62,19 @@ print("first virtual private cloud:", vpc_id)
 response_security_group = ec2_client.create_security_group(
     GroupName="ec2-security-group",
     Description="this acts like a firewall to control inbound and outbound from and to resources ",
-    VpcId=vpc_id,
+    VpcId=vpc_id,  # line 58
 )
 
 security_group_id = response_security_group["GroupId"]
 print("security group created with id:", security_group_id)
 
+time.sleep(3)  # Adjust the polling interval as needed
+
 ##################################################### Attach rules to security group #################################################
 
 # define rules for traffic of the security group
 ec2_client.authorize_security_group_ingress(
-    GroupId=security_group_id,
+    GroupId=security_group_id,  # line 68
     IpPermissions=[
         {
             "IpProtocol": "tcp",
@@ -88,6 +91,8 @@ ec2_client.authorize_security_group_ingress(
     ],
 )
 print("rules assigned to security group ...")
+
+time.sleep(3)  # Adjust the polling interval as needed
 
 ############################################### SCRIPT to install app in instance ###############################################
 
@@ -107,8 +112,8 @@ instance_params_cluster1 = {
     "InstanceType": "t2.micro",
     "MinCount": 3,  # how many instance is created
     "MaxCount": 3,
-    "UserData": app_script_content_cluster1,
-    "SecurityGroupIds": [security_group_id],
+    "UserData": app_script_content_cluster1,  # line 99
+    "SecurityGroupIds": [security_group_id],  # line 68
 }
 
 cluster_1_response = ec2_client.run_instances(**instance_params_cluster1)
@@ -124,6 +129,11 @@ print(
 instance_ids_cluster1 = [
     instance["InstanceId"] for instance in cluster_1_response["Instances"]
 ]
+
+# parameter is the desired state of ec2
+waiter = ec2_client.get_waiter("instance_running")
+waiter.wait(InstanceIds=instance_ids_cluster1)  # line 129
+
 print("Created instances in cluster 1:", instance_ids_cluster1)
 
 # cluster 2 creation
@@ -132,8 +142,8 @@ instance_params_cluster2 = {
     "InstanceType": "t2.large",
     "MinCount": 3,  # how many instance is created
     "MaxCount": 3,
-    "UserData": app_script_content_cluster2,
-    "SecurityGroupIds": [security_group_id],
+    "UserData": app_script_content_cluster2,  # line 100
+    "SecurityGroupIds": [security_group_id],  # line 68
 }
 
 cluster_2_response = ec2_client.run_instances(**instance_params_cluster2)
@@ -149,6 +159,11 @@ print(
 instance_ids_cluster2 = [
     instance["InstanceId"] for instance in cluster_2_response["Instances"]
 ]
+
+# wait for ec2 instance to be in running state
+waiter = ec2_client.get_waiter("instance_running")
+waiter.wait(InstanceIds=instance_ids_cluster2)  # line 159
+
 print("Created instances in cluster 2:", instance_ids_cluster2)
 
 ################################################## LOAD BALANCER CREATION ############################################################
@@ -179,13 +194,16 @@ load_balancer_response = load_balancer_client.create_load_balancer(
     Scheme="internet-facing",
 )
 
-
 # arn is the unique id given to my load balancer once it is created
 load_balancer_arn = load_balancer_response["LoadBalancers"][0]["LoadBalancerArn"]
 print("load balancer arn:", load_balancer_arn)
 
+
+time.sleep(3)  # Adjust the polling interval as needed
+
+
 load_balancer_describe_response = load_balancer_client.describe_load_balancers(
-    Names=["the-cool-balancer"]
+    Names=["the-cool-balancer"]  # line 191
 )
 
 if (
@@ -198,44 +216,58 @@ else:
     print("ALB not found or no DNS name available.")
 
 ################################################## Target group creation #########################################################
-
 cluster_1_target_group = load_balancer_client.create_target_group(
     Name="cluster-1-target-group",
     Protocol="HTTP",
     Port=80,
-    VpcId=vpc_id,
+    VpcId=vpc_id,  # line 58
 )
 # unique id of target group 1
 cluster_1_target_group_arn = cluster_1_target_group["TargetGroups"][0]["TargetGroupArn"]
 
+print("waiting for target group cluster 1 to be created ...")
+time.sleep(3)
+
+
 cluster_2_target_group = load_balancer_client.create_target_group(
-    Name="cluster-2-target-group", Protocol="HTTP", Port=80, VpcId=vpc_id
+    Name="cluster-2-target-group", Protocol="HTTP", Port=80, VpcId=vpc_id  # line 58
 )
 # unique id of target group 2
 cluster_2_target_group_arn = cluster_2_target_group["TargetGroups"][0]["TargetGroupArn"]
+
+print("waiting for target group cluster 2 to be created ...")
+time.sleep(3)
 
 print("target groups created:")
 print(cluster_1_target_group_arn)
 print(cluster_2_target_group_arn)
 
-
 ################################################## Target registration #########################################################
+#  [ {Id: i-0c743e5ab5c3d04e5},
+#    {Id: i-0c343e54b5c3d04e5},
+#    {Id: i-0c343e54b4kj3ngjk} ]
+# what Targets is given
+
 registration_response_cluster_1 = load_balancer_client.register_targets(
-    TargetGroupArn=cluster_1_target_group_arn,
+    TargetGroupArn=cluster_1_target_group_arn,  # what group are we associating resource to, group unique id line 226
     Targets=[
         {"Id": instance_id}
-        for instance_id in instance_ids_cluster1  # converts the list into a dict with key Id
+        for instance_id in instance_ids_cluster1  # converts the list into a dict with key Id, all of the resources id
     ],
 )
 
 print("target group for cluster 1 registered...")
 
 registration_response_cluster_2 = load_balancer_client.register_targets(
-    TargetGroupArn=cluster_2_target_group_arn,
-    Targets=[{"Id": instance_id} for instance_id in instance_ids_cluster2],
+    TargetGroupArn=cluster_2_target_group_arn,  # what group are we associating resource to, group unique id line 236
+    Targets=[
+        {"Id": instance_id} for instance_id in instance_ids_cluster2
+    ],  # all of the resources id
 )
 
 print("target group for cluster 2 registered...")
+
+time.sleep(3)  # Adjust the polling interval as needed
 
 ################################################# Create listeners #############################################################
 http_listener_response = load_balancer_client.create_listener(
@@ -245,19 +277,28 @@ http_listener_response = load_balancer_client.create_listener(
             "TargetGroupArn": cluster_1_target_group_arn,
         }
     ],
-    LoadBalancerArn=load_balancer_arn,
+    LoadBalancerArn=load_balancer_arn,  # attach the listener to a load balancer, load balancer unique id line 198
     Port=80,
     Protocol="HTTP",
 )
 
-listenerArn = (http_listener_response["Listeners"][0]["ListenerArn"],)
+listenerArn = http_listener_response["Listeners"][0]["ListenerArn"]
 print("listener created with arn:", listenerArn)
+
+time.sleep(3)  # Adjust the polling interval as needed
 
 ################################################# CREATE FORWARD RULES #########################################################
 forward_rule_cluster_1_response = load_balancer_client.create_rule(
-    ListenerArn=listenerArn,
+    ListenerArn=str(
+        listenerArn
+    ),  # which listener is going to have this rule found on line 278
     Conditions=[
-        {"Field": "path-pattern", "values": ["/cluster1"]},
+        {
+            "Field": "path-pattern",
+            "Values": [
+                "/cluster1"
+            ],  # route to the first cluster also define in the flask app
+        },
     ],
     Priority=1,
     Actions=[
@@ -267,11 +308,11 @@ forward_rule_cluster_1_response = load_balancer_client.create_rule(
                 "TargetGroups": [
                     {
                         "TargetGroupArn": cluster_1_target_group_arn,
-                        "Weight": 1,  # 1, which means that it has an equal share of the traffic when compared to other target groups (if multiple target groups are used).
+                        "Weight": 1,  # if has higher weight, cluster will receive more traffic
                     },
                 ],
                 "TargetGroupStickinessConfig": {
-                    "Enabled": False,  # stickiness, which is the persistence of client requests to a specific target group for a specified duration.
+                    "Enabled": False,
                 },
             },
         }
@@ -279,9 +320,16 @@ forward_rule_cluster_1_response = load_balancer_client.create_rule(
 )
 
 forward_rule_cluster_2_response = load_balancer_client.create_rule(
-    ListenerArn=listenerArn,
+    ListenerArn=str(
+        listenerArn
+    ),  # which listener is going to have this rule found on line 278
     Conditions=[
-        {"Field": "path-pattern", "values": ["/cluster2"]},
+        {
+            "Field": "path-pattern",
+            "Values": [
+                "/cluster2"
+            ],  # route to the second cluster also define in the flask app
+        },
     ],
     Priority=2,
     Actions=[
@@ -291,11 +339,11 @@ forward_rule_cluster_2_response = load_balancer_client.create_rule(
                 "TargetGroups": [
                     {
                         "TargetGroupArn": cluster_2_target_group_arn,
-                        "Weight": 1,  # 1, which means that it has an equal share of the traffic when compared to other target groups (if multiple target groups are used).
+                        "Weight": 1,  # if has higher weight, cluster will receive more traffic
                     },
                 ],
                 "TargetGroupStickinessConfig": {
-                    "Enabled": False,  # stickiness, which is the persistence of client requests to a specific target group for a specified duration.
+                    "Enabled": False,
                 },
             },
         }

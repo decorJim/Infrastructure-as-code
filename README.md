@@ -31,3 +31,17 @@
 - we define target group and put resource associated with them
 - the listener can then forward traffic to that group
 
+# flask app
+- for routing inside the application, we need to define as many routing as the number of cluster
+- if 2 cluster then /cluster1 and /cluster2
+- else the load balancer rules cannot be define automatically
+
+# delete resource order
+- sometimes will have to wait a bit for other resources to detect that their user resources are deleted
+- delete all running instances
+- delete the load balancer
+- delete all target groups (found when click on a random running instance, check left side bar and scroll down)
+- delete the security group
+
+
+
