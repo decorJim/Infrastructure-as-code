@@ -12,8 +12,10 @@ def consumeGETRequestSync(url: str):
 
     try:
         response = requests.get(url, headers=headers, verify=False)
-        print(response)
-        return response
+        if response.status_code == 200:
+            data = response.text
+            print(data)
+            return response
     except requests.RequestException as e:
         print(f"Error encountered while making the HTTP request to {url}: {e}")
         return None
