@@ -216,6 +216,11 @@ else:
     print("ALB not found or no DNS name available.")
 
 ################################################## Target group creation #########################################################
+
+print(
+    "################################################## Target group creation #########################################################"
+)
+
 cluster_1_target_group = load_balancer_client.create_target_group(
     Name="cluster-1-target-group",
     Protocol="HTTP",
@@ -248,6 +253,10 @@ print(cluster_2_target_group_arn)
 #    {Id: i-0c343e54b4kj3ngjk} ]
 # what Targets is given
 
+print(
+    "################################################## Target registration #########################################################"
+)
+
 registration_response_cluster_1 = load_balancer_client.register_targets(
     TargetGroupArn=cluster_1_target_group_arn,  # what group are we associating resource to, group unique id line 226
     Targets=[
@@ -270,6 +279,11 @@ print("target group for cluster 2 registered...")
 time.sleep(3)  # Adjust the polling interval as needed
 
 ################################################# Create listeners #############################################################
+
+print(
+    "################################################# Create listener #############################################################"
+)
+
 http_listener_response = load_balancer_client.create_listener(
     DefaultActions=[
         {
@@ -288,6 +302,11 @@ print("listener created with arn:", listenerArn)
 time.sleep(3)  # Adjust the polling interval as needed
 
 ################################################# CREATE FORWARD RULES #########################################################
+
+print(
+    "################################################# CREATE FORWARD RULES #########################################################"
+)
+
 forward_rule_cluster_1_response = load_balancer_client.create_rule(
     ListenerArn=str(
         listenerArn
@@ -351,3 +370,5 @@ forward_rule_cluster_2_response = load_balancer_client.create_rule(
 )
 
 print("forward rules created ...")
+
+time.sleep(5)
