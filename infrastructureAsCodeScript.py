@@ -5,7 +5,6 @@
 import time
 import botocore.session
 import os
-import boto3
 from dotenv import load_dotenv
 
 ############################################## CONNECTION FOR PROGRAMMATIC ACCESS #################################################
@@ -25,11 +24,6 @@ print(
     "############################## PROGRAMMATIC ACCESS ####################################"
 )
 print("Boto3 user connecting ...")
-
-sts_client = boto3.client("sts", **initial_credentials)
-
-role = os.getenv("ROLE")
-session_name = "Boto3Session"
 
 session.set_credentials(
     access_key=initial_credentials["aws_access_key_id"],
@@ -371,4 +365,4 @@ forward_rule_cluster_2_response = load_balancer_client.create_rule(
 
 print("forward rules created ...")
 
-time.sleep(5)
+time.sleep(10)

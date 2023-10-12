@@ -1,6 +1,5 @@
 import time
 import botocore.session
-import boto3
 from dotenv import load_dotenv
 import os
 import requests
@@ -31,11 +30,6 @@ initial_credentials = {
     "aws_access_key_id": os.getenv("Access_key"),
     "aws_secret_access_key": os.getenv("Secret_key"),
 }
-
-sts_client = boto3.client("sts", **initial_credentials)
-
-role = os.getenv("ROLE")
-session_name = "Boto3Session"
 
 session.set_credentials(
     access_key=initial_credentials["aws_access_key_id"],
