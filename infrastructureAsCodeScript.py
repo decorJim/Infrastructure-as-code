@@ -365,4 +365,4 @@ forward_rule_cluster_2_response = load_balancer_client.create_rule(
 
 print("forward rules created ...")
 
-time.sleep(10)
+time.sleep(30)

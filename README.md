@@ -43,5 +43,18 @@
 - delete all target groups (found when click on a random running instance, check left side bar and scroll down)
 - delete the security group
 
+# MetricName
+RequestCount: This metric represents the total number of requests handled by the load balancer.
+HealthyHostCount: This metric counts the number of healthy instances behind the load balancer.
+UnHealthyHostCount: This metric counts the number of unhealthy instances.
+Latency: Measures the time it takes to complete a request.
 
+# Dimensions
+- specific on a metric
+- The availability region
+- The target group
+- the resource
+
+# uncomment json print when needed
+- to check how a filter works uncomment the print json to see the full object
 
