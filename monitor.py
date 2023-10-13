@@ -262,4 +262,33 @@ query_response = cloud_watch_client.get_metric_data(
     EndTime=datetime.utcnow(),
 )
 
-print("query response", query_response)
+# this is not completely a string but can be printed in terminal it is HTTP response can see status 200 and others
+# can see what it looks like in metric_query_response.png
+# the metric data are stored in the key "MetricDataResults"
+# print("query response", query_response)
+results = query_response["MetricDataResults"]
+
+for metric in results:
+    print(metric)
+    print()
+
+
+# new list from index 0 to index len(TARGET_GROUP_CLOUDWATCH_METRICS)-1=0
+# basically [0] can also view that the id is indeed "requestcountpertargettargetgroup1"
+cluster1_target_group_metrics = results[: len(TARGET_GROUP_CLOUDWATCH_METRICS)]
+
+# [1:2] aka [1]
+cluster2_target_group_metrics = results[
+    len(TARGET_GROUP_CLOUDWATCH_METRICS) : 2 * len(TARGET_GROUP_CLOUDWATCH_METRICS)
+]
+
+# [2:2+3]=[2:5]=[2],[3],[4]
+load_balancer_metrics = results[
+    2 * len(TARGET_GROUP_CLOUDWATCH_METRICS) : 2 * len(TARGET_GROUP_CLOUDWATCH_METRICS)
+    + len(ELB_CLOUDWATCH_METRICS)
+]
+
+# [2+3:end]=[5],...
+ec2_instances_metrics = results[
+    2 * len(TARGET_GROUP_CLOUDWATCH_METRICS) + len(ELB_CLOUDWATCH_METRICS) :
+]
