@@ -312,20 +312,37 @@ print("load_balancer_metrics", load_balancer_metrics)
 print(
     "###########################################################################################################################"
 )
+
+# an array of metrics=[{cpu_utilisation1},{network_in1},{network_out1},{cpu_utilisation2},{network_in2},{network_out2}]
 print("ec2_metrics", ec2_instances_metrics)
+print()
 print(
-    "###########################################################################################################################"
+    "#################################### SEPARATES METRICS PER COMPONENT ################################################"
 )
 
-grouped_ecs_metrics = []
-i = 0
-while i < len(ec2_instances_metrics):
-    group = []
-    for _ in range(len(EC2_CLOUDWATCH_METRICS)):
-        group.append(ec2_instances_metrics[i])
-        i += 1
-    grouped_ecs_metrics.append(group)
 
+# only needed for ec2 instances since all their metrics are in one big array
+# seperates them into metrics per instances
+def group_metrics_per_component(all_metrics, single_component_metrics):
+    grouped_metrics = []
+    i = 0
+    while i < len(all_metrics):
+        group = []
+        for _ in range(len(single_component_metrics)):
+            group.append(all_metrics[i])
+            i += 1
+        grouped_metrics.append(group)
+    return grouped_metrics
+
+
+# converts ec2 metrics into an array of array
+# grouped_ecs_metrics=[
+#    [{cpu_utilisation1},{network_in1},{network_out1}],    first ec2 instance
+#    [{cpu_utilisation2},{network_in2},{network_out2}]     second ec2 instance
+# ]
+grouped_ecs_metrics = group_metrics_per_component(
+    ec2_instances_metrics, EC2_CLOUDWATCH_METRICS
+)
 print("grouped_ec2_instances", grouped_ecs_metrics)
 print(
     "#########################################################################################################################"
@@ -333,41 +350,46 @@ print(
 
 
 def generate_metric_groups_graphs(metric_groups, bar=False):
-    """
-    Description: Generates graphs for the provided metric groups.
-
-    Parameters:
-    - metric_groups (list): A list of metric groups for which graphs should be generated.
-    - bar (bool): Indicates whether the graph should be a bar graph.
-
-    Returns: None
-    """
-
+    # metric_groups[0] takes the array containing metrics of 1 component
+    # to generalize function we also put a global array for cluster and load balancer even if the metrics are already for them alone
+    # is needed to access one ec2 instance's metrics
     for i in range(len(metric_groups[0])):
+        # convert every metric inside the array into Metric_data objects and store them in an array
         data_groups = [Metric_data(group[i]) for group in metric_groups]
         print("data group", data_groups)
 
+        # takes first metric object in array
         label = data_groups[0].label
+        print("data_groups[0]", data_groups[0])
 
+        # creates a new figure and axe
         fig, ax = plt.subplots()
         if not bar:
+            # set x axis to be in time hour:minute:second
             formatter = DateFormatter("%H:%M:%S")
             ax.xaxis.set_major_formatter(formatter)
             plt.xlabel("Timestamps")
         else:
+            # set x axis to be instances
             plt.xlabel("Instances")
 
         for data in data_groups:
             if not bar:
+                # If bar is False (not bar), it uses plt.plot to create a line plot using the timestamps
+                # and values from the data object. It assigns a label to the plot based on the grouplabel
+                # attribute of the metric_data object
                 plt.plot(
                     data.timestamps,
                     data.values,
-                    label=getattr(data, "grouplabel", None),
+                    label=getattr(
+                        data, "grouplabel", None
+                    ),  # classify in group depending on the grouplabel
                 )
             else:
-                time.sleep(30)
+                time.sleep(10)
                 if data.values:
                     plt.bar(data.grouplabel, data.values[0])
+                    # creates bar chart where each group label is an instance and takes the first value as height
 
         if not bar:
             plt.title(label)
@@ -377,14 +399,36 @@ def generate_metric_groups_graphs(metric_groups, bar=False):
         if len(data_groups) > 1 and not bar:
             plt.legend(loc="best")
 
-        plt.xticks(rotation=90)
-        plt.tight_layout()
+        plt.xticks(rotation=90)  # rotates the values on x axis to be a vertical line
+        plt.tight_layout()  # This function adjusts the subplot parameters to ensure that all elements in the plot fit within the figure area properly
         plt.savefig(f"graphs/{label}")
         plt.close()
 
 
+# each is an array that contains one or more metrics
+# cluster1_target_group_metrics=
+# [
+#     {
+#         "Id": "requestcountpertargettargetgroup1",
+#         "Label": "AWS/ApplicationELB targetgroup/cluster-1-target-group/8ff85300e78f74c8 RequestCountPerTarget",
+#         "Timestamps": [datetime(2023, 10, 15, 18, 39)],
+#         "Values": [0.0],
+#         "StatusCode": "Complete",
+#     }
+# ]
+print(
+    "############################################## GRAPH CLUSTERS #########################################################"
+)
 generate_metric_groups_graphs(
     [cluster1_target_group_metrics, cluster2_target_group_metrics]
 )
+print()
+print(
+    "############################################## GRAPH LOAD BALANCER #########################################################"
+)
 generate_metric_groups_graphs([load_balancer_metrics])
+print()
+print(
+    "############################################## GRAPH EC2 instances #########################################################"
+)
 generate_metric_groups_graphs(grouped_ecs_metrics, True)
