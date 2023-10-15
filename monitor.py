@@ -1,8 +1,14 @@
 from datetime import datetime, timedelta
 import json
+import time
 import botocore.session
 from dotenv import load_dotenv
 import os
+
+from matplotlib import pyplot as plt
+from matplotlib.dates import DateFormatter
+from metric_data import Metric_data
+from datetime import datetime
 
 ############################################## CONNECTION TO ACCOUNT #####################################################
 
@@ -292,3 +298,93 @@ load_balancer_metrics = results[
 ec2_instances_metrics = results[
     2 * len(TARGET_GROUP_CLOUDWATCH_METRICS) + len(ELB_CLOUDWATCH_METRICS) :
 ]
+
+# each metric has id of metric name followed by instance id
+print("cluster1_target_metrics", cluster1_target_group_metrics)
+print(
+    "###########################################################################################################################"
+)
+print("cluster2_target_metrics", cluster2_target_group_metrics)
+print(
+    "###########################################################################################################################"
+)
+print("load_balancer_metrics", load_balancer_metrics)
+print(
+    "###########################################################################################################################"
+)
+print("ec2_metrics", ec2_instances_metrics)
+print(
+    "###########################################################################################################################"
+)
+
+grouped_ecs_metrics = []
+i = 0
+while i < len(ec2_instances_metrics):
+    group = []
+    for _ in range(len(EC2_CLOUDWATCH_METRICS)):
+        group.append(ec2_instances_metrics[i])
+        i += 1
+    grouped_ecs_metrics.append(group)
+
+print("grouped_ec2_instances", grouped_ecs_metrics)
+print(
+    "#########################################################################################################################"
+)
+
+
+def generate_metric_groups_graphs(metric_groups, bar=False):
+    """
+    Description: Generates graphs for the provided metric groups.
+
+    Parameters:
+    - metric_groups (list): A list of metric groups for which graphs should be generated.
+    - bar (bool): Indicates whether the graph should be a bar graph.
+
+    Returns: None
+    """
+
+    for i in range(len(metric_groups[0])):
+        data_groups = [Metric_data(group[i]) for group in metric_groups]
+        print("data group", data_groups)
+
+        label = data_groups[0].label
+
+        fig, ax = plt.subplots()
+        if not bar:
+            formatter = DateFormatter("%H:%M:%S")
+            ax.xaxis.set_major_formatter(formatter)
+            plt.xlabel("Timestamps")
+        else:
+            plt.xlabel("Instances")
+
+        for data in data_groups:
+            if not bar:
+                plt.plot(
+                    data.timestamps,
+                    data.values,
+                    label=getattr(data, "grouplabel", None),
+                )
+            else:
+                time.sleep(30)
+                if data.values:
+                    plt.bar(data.grouplabel, data.values[0])
+
+        if not bar:
+            plt.title(label)
+        else:
+            plt.title("Average " + label)
+
+        if len(data_groups) > 1 and not bar:
+            plt.legend(loc="best")
+
+        plt.xticks(rotation=90)
+        plt.tight_layout()
+        plt.savefig(f"graphs/{label}")
+        plt.close()
+
+
+generate_metric_groups_graphs(
+    [cluster1_target_group_metrics, cluster2_target_group_metrics]
+)
+generate_metric_groups_graphs([load_balancer_metrics])
+generate_metric_groups_graphs(grouped_ecs_metrics, True)
