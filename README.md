@@ -58,3 +58,5 @@ Latency: Measures the time it takes to complete a request.
 # uncomment json print when needed
 - to check how a filter works uncomment the print json to see the full object
 
+# graph
+- if folder "graphs" is not created, created else code will crash
