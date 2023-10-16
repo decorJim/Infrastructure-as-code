@@ -56,7 +56,6 @@ for _ in range(1000):
 
 print("workload 1 completed !!!")
 
-time.sleep(10)
 
 ############################################# second workload #########################################################
 
@@ -67,7 +66,7 @@ for _ in range(500):
     t = threading.Thread(target=consumeGETRequestSync, args=(url_cluster2,))
     t.start()
 
-time.sleep(10)
+time.sleep(60)
 
 for _ in range(1000):
     t = threading.Thread(target=consumeGETRequestSync, args=(url_cluster2,))
