@@ -71,3 +71,7 @@ time.sleep(60)
 for _ in range(1000):
     t = threading.Thread(target=consumeGETRequestSync, args=(url_cluster2,))
     t.start()
+
+time.sleep(
+    120
+)  # needs to wait a bit before running monitor.py else metrics wont be available yet adjust if not all instance in graph prob longer
