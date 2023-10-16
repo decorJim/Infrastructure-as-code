@@ -142,12 +142,12 @@ instance_params_cluster2 = {
 
 cluster_2_response = ec2_client.run_instances(**instance_params_cluster2)
 print(
-    "creating ec2 cluster 2 "
-    + str(instance_params_cluster1["MinCount"])
+    "creating ec2 cluster2 "
+    + str(instance_params_cluster2["MinCount"])
     + " instances of type "
-    + str(instance_params_cluster1["InstanceType"])
+    + str(instance_params_cluster2["InstanceType"])
     + " with image id:"
-    + str(instance_params_cluster1["ImageId"])
+    + str(instance_params_cluster2["ImageId"])
 )
 
 instance_ids_cluster2 = [
